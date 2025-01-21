@@ -16,7 +16,7 @@
  *
  */
 
-use clap::{Parser, ValueEnum};
+use clap::{Parser, ValueEnum, Subcommand};
 use clap_complete::Shell;
 use std::path::PathBuf;
 use url::Url;
@@ -45,7 +45,7 @@ pub const DEFAULT_USERNAME: &str = "admin";
 pub const DEFAULT_PASSWORD: &str = "admin";
 
 #[derive(Parser)]
-#[command(
+#[clap(
     name = "parseable",
     bin_name = "parseable",
     about = "Cloud Native, log analytics platform for modern applications.",
@@ -74,27 +74,36 @@ pub const DEFAULT_PASSWORD: &str = "admin";
     subcommand_required = true,
 )]
 pub struct Cli {
-    #[command(subcommand)]
-    pub storage: StorageOptions,
+    #[clap(subcommand)]
+    pub cmd: CommandOptions,
 }
 
-
-
 #[derive(Parser)]
+pub enum CommandOptions {
+    /// Manage storage options
+    #[clap(name = "storage")]
+    Storage(StorageOptions),
+
+    /// Generate shell completions
+    #[clap(name = "completions")]
+    Completion(CompletionOptions),
+}
+
+#[derive(Subcommand)]
 pub enum StorageOptions {
-    #[command(name = "local-store")]
+    #[clap(name = "local-store")]
     Local(LocalStoreArgs),
 
-    #[command(name = "s3-store")]
+    #[clap(name = "s3-store")]
     S3(S3StoreArgs),
 
-    #[command(name = "blob-store")]
+    #[clap(name = "blob-store")]
     Blob(BlobStoreArgs),
 }
 
-#[derive(Parser)]
+#[derive(Subcommand)]
 pub enum CompletionOptions {
-    #[command(name = "completion")]
+    #[clap(name = "completion")]
     Completion(CompletionArgs),
 }
 

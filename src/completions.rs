@@ -19,6 +19,7 @@
 use clap::Command;
 use clap_complete::{generate, Shell};
 use std::io;
+use crate::options::build_cli;
 use std::path::PathBuf;
 
 /// Generates a completion script for the specified shell.
@@ -31,6 +32,10 @@ pub fn generate_completion_script(
     shell: Shell,
     output: Option<PathBuf>,
 ) -> Result<(), io::Error> {
+
+	let mut cmd = build_cli();
+	generate(Shell::Bash, &mut cmd, "parseable", &mut io::stdout());
+	
     if let Some(file_path) = output {
         let mut file = std::fs::File::create(file_path)?;
         generate(shell, cmd, bin_name, &mut file);
@@ -39,3 +44,4 @@ pub fn generate_completion_script(
     }
     Ok(())
 }
+

@@ -122,11 +122,7 @@ pub struct Config {
 
 impl Config {
     fn new() -> Self {
-        let mut cmd = build_cli();
-    
-        generate(Shell::Bash, &mut cmd, "parseable", &mut io::stdout());
-
-        match Cli::parse().storage {
+        match Cli::parse().cmd.storage {
             StorageOptions::Local(args) => {
                 if args.options.local_staging_path == args.storage.root {
                     clap::Error::raw(
