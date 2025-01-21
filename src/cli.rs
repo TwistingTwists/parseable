@@ -16,9 +16,9 @@
  *
  */
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
+use clap_complete::Shell;
 use std::path::PathBuf;
-
 use url::Url;
 
 use crate::{
@@ -50,33 +50,35 @@ pub const DEFAULT_PASSWORD: &str = "admin";
     bin_name = "parseable",
     about = "Cloud Native, log analytics platform for modern applications.",
     long_about = r#"
-Cloud Native, log analytics platform for modern applications.
-
-Usage:
-parseable [command] [options..]
-
-
-Help:
-parseable [command] --help
-
-"#,
+		Cloud Native, log analytics platform for modern applications.
+		
+		Usage:
+		parseable [command] [options..]
+		
+		
+		Help:
+		parseable [command] --help
+	
+	"#,
     arg_required_else_help = true,
     color = clap::ColorChoice::Always,
     version = env!("CARGO_PKG_VERSION"),
     propagate_version = true,
     next_line_help = false,
     help_template = r#"{name} v{version}
-{about}
-Join the community at https://logg.ing/community.
-
-{all-args}
-        "#,
+		{about}
+		Join the community at https://logg.ing/community.
+		
+		{all-args}
+    "#,
     subcommand_required = true,
 )]
 pub struct Cli {
     #[command(subcommand)]
     pub storage: StorageOptions,
 }
+
+
 
 #[derive(Parser)]
 pub enum StorageOptions {
@@ -88,6 +90,44 @@ pub enum StorageOptions {
 
     #[command(name = "blob-store")]
     Blob(BlobStoreArgs),
+}
+
+#[derive(Parser)]
+pub enum CompletionOptions {
+    #[command(name = "completion")]
+    Completion(CompletionArgs),
+}
+
+#[derive(Parser)]
+pub struct CompletionArgs {
+    /// The shell to generate completions for
+    #[arg(value_enum)]
+    pub shell: ShellWrapper,
+
+    /// The output directory to write the completions to (default: stdout)
+    #[arg(short, long)]
+    pub output: Option<PathBuf>,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum ShellWrapper {
+    Bash,
+    Elvish,
+    Fish,
+    PowerShell,
+    Zsh,
+}
+
+impl From<ShellWrapper> for Shell {
+    fn from(wrapper: ShellWrapper) -> Self {
+        match wrapper {
+            ShellWrapper::Bash => Shell::Bash,
+            ShellWrapper::Elvish => Shell::Elvish,
+            ShellWrapper::Fish => Shell::Fish,
+            ShellWrapper::PowerShell => Shell::PowerShell,
+            ShellWrapper::Zsh => Shell::Zsh,
+        }
+    }
 }
 
 #[derive(Parser)]

@@ -16,17 +16,98 @@
  *
  */
 
-use crate::cli::{Cli, Options, StorageOptions, DEFAULT_PASSWORD, DEFAULT_USERNAME};
+use crate::cli::{Cli, Options, StorageOptions, DEFAULT_PASSWORD, DEFAULT_USERNAME, CompletionOptions};
 use crate::storage::object_storage::parseable_json_path;
 use crate::storage::{ObjectStorageError, ObjectStorageProvider};
+use crate::completions::generate_completion_script;
 use bytes::Bytes;
 use clap::error::ErrorKind;
-use clap::Parser;
+use clap::{Parser, ValueEnum, Command, Arg, ArgAction, value_parser};
 use once_cell::sync::Lazy;
 use parquet::basic::{BrotliLevel, GzipLevel, ZstdLevel};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::str::FromStr;
+use clap_complete::{generate, Shell};
+use std::io;
+
+pub fn build_cli() -> Command {
+    Command::new("parseable")
+        .bin_name("parseable")
+        .about("Cloud Native, log analytics platform for modern applications.")
+        .long_about(
+            r#"
+            Cloud Native, log analytics platform for modern applications.
+            
+            Usage:
+            parseable [command] [options..]
+            
+            
+            Help:
+            parseable [command] --help
+            "#,
+        )
+        .arg_required_else_help(true)
+        .color(clap::ColorChoice::Always)
+        .version(env!("CARGO_PKG_VERSION"))
+        .propagate_version(true)
+        .next_line_help(false)
+        .help_template(
+            r#"{name} v{version}
+            {about}
+            Join the community at https://logg.ing/community.
+            
+            {all-args}
+            "#,
+        )
+        .subcommand_required(true)
+        .subcommand(
+            Command::new("storage")
+                .about("Storage options")
+                .subcommand_required(true)
+                .subcommand(
+                    Command::new("local-store")
+                        .about("Use local storage")
+                        .arg(
+                            Arg::new("path")
+                                .long("path")
+                                .value_name("PATH")
+                                .help("Path to the local storage directory")
+                                .required(true),
+                        ),
+                )
+                .subcommand(
+                    Command::new("s3-store")
+                        .about("Use S3 storage")
+                        .arg(
+                            Arg::new("bucket")
+                                .long("bucket")
+                                .value_name("BUCKET")
+                                .help("S3 bucket name")
+                                .required(true),
+                        ),
+                ),
+        )
+        .subcommand(
+            Command::new("completion")
+                .about("Generate shell completions")
+                .arg(
+                    Arg::new("shell")
+                        .long("shell")
+                        .value_name("SHELL")
+                        .value_parser(value_parser!(Shell))
+                        .help("The shell to generate completions for")
+                        .required(true),
+                )
+                .arg(
+                    Arg::new("output")
+                        .long("output")
+                        .value_name("OUTPUT")
+                        .help("The output directory to write the completions to (default: stdout)"),
+                ),
+        )
+}
 
 pub const JOIN_COMMUNITY: &str =
     "Join us on Parseable Slack community for questions : https://logg.ing/community";
@@ -41,6 +122,10 @@ pub struct Config {
 
 impl Config {
     fn new() -> Self {
+        let mut cmd = build_cli();
+    
+        generate(Shell::Bash, &mut cmd, "parseable", &mut io::stdout());
+
         match Cli::parse().storage {
             StorageOptions::Local(args) => {
                 if args.options.local_staging_path == args.storage.root {
